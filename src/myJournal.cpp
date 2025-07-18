@@ -5,25 +5,46 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
-
+#include <memory>
 
 namespace journal{
-	Journal::Journal(const std::string & journalName, MessageLevel msgLevelDefault) :
-										journalName_(journalName), msgLevelDefault_(msgLevelDefault) 
+	
+	JournalFileStream::JournalFileStream(const std::string& filename): valid_(false){
+		journalFile_.open(filename, std::ios::app);
+		valid_ = journalFile_.is_open();
+	}
+	
+	bool JournalFileStream::is_open() const{
+		return valid_;
+	}
+	
+	JournalFileStream::~JournalFileStream(){
+		journalFile_.close();
+	}
+	
+	bool JournalFileStream::write(const std::string& data){
+		if(!valid_){
+			return false;
+		}
+		journalFile_<<data<<std::endl;
+		return journalFile_.good();
+	}
+	
+	
+	Journal::Journal(const std::string & journalName, MessageLevel msgLevelDefault, bool useSocket, const std::string & host, int port) :
+										journalName_(journalName), msgLevelDefault_(msgLevelDefault)
     {
-      msgLevelDefault_ = msgLevelDefault;
-      journalName_ = journalName;
-      journalFile_.open(journalName_);
-      if (!journalFile_.is_open()) {
-        std::runtime_error("Failed to open journal file: " + journalName_);
-      }
+	  if(useSocket){
+		  //TODO
+	  }	
+	  else{
+		  stream = std::make_unique<journal::JournalFileStream>(journalName);
+	  }
+      valid_ = (*stream).is_open();
     }
     
-    Journal::~Journal(){
-		if(journalFile_.is_open()){
-			journalFile_.close();
-		}
-	}
+    Journal::~Journal() = default;
+	
     
     void Journal::setMsgLevelDefault(MessageLevel msgLevelDefaultNew) {
 		msgLevelDefault_ = msgLevelDefaultNew;
@@ -35,10 +56,14 @@ namespace journal{
 		return journalName_;
     }
     
+    bool Journal::isValid(){
+		return valid_;
+	}
+    
     //our main logging function
-    void Journal::log(const std::string data,
+    bool Journal::log(const std::string data,
 					const MessageLevel level,
-					const std::chrono::system_clock::time_point &time = std::chrono::system_clock::now())
+					const std::chrono::system_clock::time_point &time)
 					//determined time - for tests
 					
 	{
@@ -50,28 +75,25 @@ namespace journal{
 			case MessageLevel::WARNING:
 				levelString = "WARNING";
 				break;
-			case MessageLevel::ERROR:
-				levelString = "ERROR";
-				break;
 			default:
-				levelString = "FATAL ERROR";
+				levelString = "ERROR";
 			}
-		
+		if(static_cast<int>(level) < static_cast<int>(msgLevelDefault_)){
+			return true;
+		}
 		auto timeT = std::chrono::system_clock::to_time_t(time);
-		if(journalFile_.is_open())
-		{
-			journalFile_ << std::put_time(std::localtime(&timeT),"%Y-%m-%d %H:%M:%S")<<";"<<levelString<<";"<<data<<std::endl;;
-		}
-		else
-		{
-			std::runtime_error("Failed to open journal file: " + journalName_);
-		}
+		std::ostringstream oss;
+		
+		
+		oss << std::put_time(std::localtime(&timeT),"%Y-%m-%d %H:%M:%S")<<";"<<levelString<<";"<<data;
+		return stream->write(oss.str());
+		
 	}
 	
 	//if we dont have lvl as arg, then using private class field (we cant just use nonstatic field as default arg)
-	void Journal::log(const std::string data,
-					const std::chrono::system_clock::time_point &time = std::chrono::system_clock::now())
+	bool Journal::log(const std::string data,
+					const std::chrono::system_clock::time_point &time)
 	{
-		log(data, msgLevelDefault_, time);
+		return log(data, msgLevelDefault_, time);
 	}
-}
+}//namespace journal
