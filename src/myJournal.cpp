@@ -61,10 +61,7 @@ namespace journal{
 	}
     
     //our main logging function
-    bool Journal::log(const std::string data,
-					const MessageLevel level,
-					const std::chrono::system_clock::time_point &time)
-					//determined time - for tests
+    bool Journal::log(const std::string data,const MessageLevel level, const std::chrono::system_clock::time_point &time) //determined time - for tests
 					
 	{
 		std::string levelString;
@@ -90,7 +87,7 @@ namespace journal{
 		
 	}
 	
-	//if we dont have lvl as arg, then using private class field (we cant just use nonstatic field as default arg)
+	//if we dont have lvl as arg, then using private class field by default;
 	bool Journal::log(const std::string data,
 					const std::chrono::system_clock::time_point &time)
 	{

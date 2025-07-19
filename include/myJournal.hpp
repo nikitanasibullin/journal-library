@@ -28,9 +28,9 @@ namespace journal {
    };
 
   class Journal {
-	MessageLevel msgLevelDefault_; //message lvl by default
+	MessageLevel msgLevelDefault_; 
 	std::string journalName_;
-	bool valid_; 				   //chicking correctness of Journal
+	bool valid_; 				   //correctness of Journal
     std::unique_ptr<JournalStream> stream;
     
   public:
