@@ -5,6 +5,10 @@
 #include <fstream>
 #include <chrono>
 #include <memory>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 
 namespace journal {
 
@@ -25,6 +29,17 @@ namespace journal {
 	   ~JournalFileStream();
 	   bool write(const std::string& data) override;
 	   bool is_open() const override;
+   };
+   
+   class JournalSocketStream : public JournalStream{
+	   int socketFd_;
+	   bool valid_;
+   public:
+	   JournalSocketStream(const std::string& host, int port);
+	   ~JournalSocketStream() override;
+	   bool write(const std::string& data) override;
+	   bool is_open() const override;
+	   
    };
 
   class Journal {

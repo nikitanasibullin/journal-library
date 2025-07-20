@@ -6,6 +6,10 @@
 #include <sstream>
 #include <iomanip>
 #include <memory>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 
 namespace journal{
 	
@@ -31,14 +35,64 @@ namespace journal{
 	}
 	
 	
+	
+	 JournalSocketStream::JournalSocketStream(const std::string& host, int port) : socketFd_(-1),valid_(false){
+		socketFd_ = socket(AF_INET,SOCK_STREAM,0);    //create socket
+		if(socketFd_==-1){
+			return;									  //error with socket creation
+		}
+		sockaddr_in server_addr{};
+		server_addr.sin_family = AF_INET;
+		server_addr.sin_port = htons(port);
+		if(inet_pton(AF_INET,host.c_str(),&server_addr.sin_addr)<=0){
+			close(socketFd_);
+			socketFd_=-1;
+			return;  //error in adress
+		}
+		
+		if(connect(socketFd_, (struct sockaddr*)&server_addr,sizeof(server_addr)) ==-1){
+			close(socketFd_);
+			socketFd_=-1;
+			return;  //error in connection
+		}
+		
+		valid_=true;
+		
+	}
+    
+    JournalSocketStream::~JournalSocketStream(){
+		if(socketFd_!=1){
+			socketFd_=-1;
+			close(socketFd_);
+		}
+	}
+	
+	bool JournalSocketStream::is_open() const {
+		return valid_;
+	}
+	
+	bool JournalSocketStream::write(const std::string &data)
+	{
+		
+		std::string copy = data+"\n";
+		if(!valid_){
+			return false;
+		}
+		int bytes_sent = send(socketFd_, copy.c_str(), copy.size(), 0);
+		return bytes_sent == copy.size();
+  }
+  
+  
+	
+	
 	Journal::Journal(const std::string & journalName, MessageLevel msgLevelDefault, bool useSocket, const std::string & host, int port) :
 										journalName_(journalName), msgLevelDefault_(msgLevelDefault)
     {
 	  if(useSocket){
-		  //TODO
+		  stream = std::make_unique<JournalSocketStream>(host, port);
 	  }	
 	  else{
-		  stream = std::make_unique<journal::JournalFileStream>(journalName);
+		  stream = std::make_unique<JournalFileStream>(journalName);
 	  }
       valid_ = (*stream).is_open();
     }
@@ -60,9 +114,12 @@ namespace journal{
 		return valid_;
 	}
     
+   
+   
+   
+    
     //our main logging function
-    bool Journal::log(const std::string data,const MessageLevel level, const std::chrono::system_clock::time_point &time) //determined time - for tests
-					
+    bool Journal::log(const std::string data,const MessageLevel level, const std::chrono::system_clock::time_point &time) //determined time - for tests			
 	{
 		std::string levelString;
 		switch(level){
