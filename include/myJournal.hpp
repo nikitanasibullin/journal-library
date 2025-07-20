@@ -12,16 +12,19 @@
 
 namespace journal {
 
-  enum class MessageLevel { INFO, WARNING, ERROR }; //3 levels in gradation
+  //3 levels in gradation
+  enum class MessageLevel { INFO, WARNING, ERROR }; 
   
-   class JournalStream{ //virtual class for writing in some outstream(file/socket)
+   //virtual class for writing in some outstream(file/socket)
+   class JournalStream{
    public:
 	   virtual bool write(const std::string&) = 0;
 	   virtual bool is_open() const = 0;
 	   virtual ~JournalStream() = default;
    };
    
-   class JournalFileStream :public JournalStream { //class for writing in filestream
+    //class for writing in filestream
+   class JournalFileStream :public JournalStream {
 	   std::ofstream journalFile_;
 	   bool valid_;
    public:
@@ -31,8 +34,9 @@ namespace journal {
 	   bool is_open() const override;
    };
    
+      //class for writing in socketstream
    class JournalSocketStream : public JournalStream{
-	   int socketFd_;
+	   int socketFd_; //socket descriptor
 	   bool valid_;
    public:
 	   JournalSocketStream(const std::string& host, int port);
