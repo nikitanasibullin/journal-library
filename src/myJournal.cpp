@@ -64,7 +64,7 @@ namespace journal{
 	}
     
     JournalSocketStream::~JournalSocketStream(){
-		if(socketFd_!=1){
+		if(socketFd_!=-1){
 			socketFd_=-1;
 			close(socketFd_);
 		}
@@ -91,7 +91,7 @@ namespace journal{
 	
 	//constructor
 	Journal::Journal(const std::string & journalName, MessageLevel msgLevelDefault, bool useSocket, const std::string & host, int port) :
-										journalName_(journalName), msgLevelDefault_(msgLevelDefault)
+										journalName_(journalName), msgLevelDefault_(msgLevelDefault), valid_(false)
 										
 	//mcreating socket or file stream
     {
